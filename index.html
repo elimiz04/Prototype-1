@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audio Word Sync</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f9f5f0;
+    }
+
+    #playButton {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background-color: #80634F;
+      color: white;
+      cursor: pointer;
+      z-index: 20;
+    }
+
+    #rectangle-container {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      width: 366px;
+      height: 584px;
+      background-color: #DEBDAA;
+      border-radius: 69px;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .highlight {
+      background-color: yellow;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<audio id="background-audio" preload="auto">
+  <source src="https://www.dropbox.com/scl/fi/j5w8mpmtcbf83x31mz4a6/chapter-1-page-1-fast-speed.mp3?rlkey=d37gta9ce94hoe9efkgs384m6&st=ybiqscpi&dl=1" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<button id="playButton">▶️ Start Audio</button>
+
+<div id="rectangle-container">
+  <div id="text-container">
+    <p id="text1">As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past.</p>
+    <p id="text2">Before cities, before written language—there was Ħaġar Qim.</p>
+    <p id="text3">Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos.</p>
+    <p id="text4">They raised temples using sheer will and wisdom passed down through generations.</p>
+    <p id="text5">A sea breeze brushes your face. It’s the same wind those ancient people felt.</p>
+    <p id="text6">The sun above still aligns with the temple on the summer solstice—just as they intended.</p>
+  </div>
+</div>
+
+<script>
+  const audio = document.getElementById('background-audio');
+  const playButton = document.getElementById('playButton');
+
+  const textElements = [
+    document.getElementById('text1'),
+    document.getElementById('text2'),
+    document.getElementById('text3'),
+    document.getElementById('text4'),
+    document.getElementById('text5'),
+    document.getElementById('text6')
+  ];
+
+  const wordSpans = [];
+
+  // Replace text with span-wrapped words
+  let totalWords = 0;
+  textElements.forEach(el => {
+    const words = el.innerText.trim().split(/\s+/);
+    totalWords += words.length;
+    el.innerHTML = words.map(word => `<span class="word">${word}</span>`).join(' ');
+    wordSpans.push(...el.querySelectorAll('.word'));
+  });
+
+  let wordDuration = 0;
+
+  // Only start highlighting after metadata is ready
+  audio.addEventListener('loadedmetadata', () => {
+    wordDuration = audio.duration / totalWords;
+
+    // Start interval only after user presses play
+    playButton.addEventListener('click', () => {
+      audio.play();
+      playButton.style.display = 'none';
+
+      setInterval(() => {
+        const currentTime = audio.currentTime;
+        const currentWord = Math.floor(currentTime / wordDuration);
+
+        // Remove all highlights
+        wordSpans.forEach(span => span.classList.remove('highlight'));
+
+        // Add highlight to the current word
+        if (currentWord >= 0 && currentWord < wordSpans.length) {
+          wordSpans[currentWord].classList.add('highlight');
+        }
+      }, 50); // Fast check for smoother highlight
+    });
+  });
+</script>
+
+</body>
+</html>
