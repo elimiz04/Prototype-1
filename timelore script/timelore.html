@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Word-by-Word Sync</title>
+  <title>Natural Audio + Word-by-Word Highlight</title>
   <style>
     body {
       margin: 0;
@@ -39,8 +39,7 @@
     }
 
     .word {
-      display: inline-block;
-      margin-right: 4px;
+      display: inline;
     }
 
     .highlight {
@@ -84,36 +83,51 @@
 
   loadVoices();
 
-  // Replace each word with a span
-  const text = textContainer.innerText.trim();
-  const words = text.split(/\s+/);
-  textContainer.innerHTML = words.map(word => `<span class="word">${word}</span>`).join(' ');
+  // Split text into sentences for natural reading
+  const rawText = textContainer.innerText.trim();
+  const sentences = rawText.match(/[^\.!\?]+[\.!\?]*/g);
+
+  // Wrap each word in a span
+  textContainer.innerHTML = sentences.map((sentence, sIndex) => {
+    const words = sentence.trim().split(/\s+/);
+    return words.map((word, wIndex) =>
+      `<span class="word" data-index="${sIndex}-${wIndex}">${word}</span>`
+    ).join(' ') + ' ';
+  }).join('');
 
   const wordSpans = document.querySelectorAll('.word');
 
-  function speakWords(index = 0) {
-    if (index >= words.length) {
+  function speakSentences(index = 0) {
+    if (index >= sentences.length) {
       playButton.style.display = 'block';
       return;
     }
 
-    // Highlight current word
-    wordSpans.forEach(span => span.classList.remove('highlight'));
-    if (index < wordSpans.length) {
-      wordSpans[index].classList.add('highlight');
-    }
-
-    const utter = new SpeechSynthesisUtterance(words[index]);
-    utter.rate = 1;
+    const utter = new SpeechSynthesisUtterance(sentences[index]);
+    utter.rate = 1.05;
     utter.lang = 'mt-MT';
 
-    const malteseVoice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
-    if (malteseVoice) {
-      utter.voice = malteseVoice;
-    }
+    const voice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
+    if (voice) utter.voice = voice;
+
+    // Highlight words in real time
+    let wordOffset = 0;
+    const sentenceWords = sentences[index].trim().split(/\s+/);
+    utter.onboundary = (event) => {
+      if (event.name === 'word') {
+        wordSpans.forEach(span => span.classList.remove('highlight'));
+
+        const span = document.querySelector(`[data-index="${index}-${wordOffset}"]`);
+        if (span) {
+          span.classList.add('highlight');
+        }
+
+        wordOffset++;
+      }
+    };
 
     utter.onend = () => {
-      setTimeout(() => speakWords(index + 1), 100); // Delay between words
+      speakSentences(index + 1);
     };
 
     speechSynthesis.speak(utter);
@@ -124,7 +138,7 @@
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
-    speakWords(0);
+    speakSentences(0);
   });
 </script>
 
