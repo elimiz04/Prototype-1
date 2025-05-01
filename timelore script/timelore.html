@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phrase-Level Sync</title>
+  <title>Word-by-Word Sync</title>
   <style>
     body {
       margin: 0;
@@ -38,8 +38,9 @@
       overflow-y: auto;
     }
 
-    .phrase {
-      display: inline;
+    .word {
+      display: inline-block;
+      margin-right: 4px;
     }
 
     .highlight {
@@ -54,13 +55,13 @@
 
 <div id="rectangle-container">
   <div id="text-container">
-    <p id="paragraph">
-      As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past. 
-      Before cities, before written language—there was Ħaġar Qim. 
-      Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos. 
-      They raised temples using sheer will and wisdom passed down through generations. 
-      A sea breeze brushes your face. 
-      It’s the same wind those ancient people felt. 
+    <p>
+      As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past.
+      Before cities, before written language—there was Ħaġar Qim.
+      Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos.
+      They raised temples using sheer will and wisdom passed down through generations.
+      A sea breeze brushes your face.
+      It’s the same wind those ancient people felt.
       The sun above still aligns with the temple on the summer solstice—just as they intended.
     </p>
   </div>
@@ -68,24 +69,7 @@
 
 <script>
   const playButton = document.getElementById('playButton');
-  const paragraph = document.getElementById('paragraph');
-
-  const rawText = paragraph.innerText.trim();
-
-  // Break into short phrases (3–6 words)
-  const phrases = rawText.match(/([^\.!?]+[\.!?]?)/g).flatMap(sentence => {
-    const words = sentence.trim().split(/\s+/);
-    const chunks = [];
-    for (let i = 0; i < words.length; i += 4) {
-      chunks.push(words.slice(i, i + 4).join(' '));
-    }
-    return chunks;
-  });
-
-  // Replace paragraph with span-wrapped phrases
-  paragraph.innerHTML = phrases.map(phrase => `<span class="phrase">${phrase}</span>`).join(' ');
-
-  const phraseSpans = document.querySelectorAll('.phrase');
+  const textContainer = document.getElementById('text-container');
 
   let voices = [];
 
@@ -100,25 +84,36 @@
 
   loadVoices();
 
-  function speakPhrases(index = 0) {
-    if (index >= phrases.length) {
+  // Replace each word with a span
+  const text = textContainer.innerText.trim();
+  const words = text.split(/\s+/);
+  textContainer.innerHTML = words.map(word => `<span class="word">${word}</span>`).join(' ');
+
+  const wordSpans = document.querySelectorAll('.word');
+
+  function speakWords(index = 0) {
+    if (index >= words.length) {
       playButton.style.display = 'block';
       return;
     }
 
-    const utter = new SpeechSynthesisUtterance(phrases[index]);
+    // Highlight current word
+    wordSpans.forEach(span => span.classList.remove('highlight'));
+    if (index < wordSpans.length) {
+      wordSpans[index].classList.add('highlight');
+    }
+
+    const utter = new SpeechSynthesisUtterance(words[index]);
     utter.rate = 1;
     utter.lang = 'mt-MT';
 
     const malteseVoice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
-    if (malteseVoice) utter.voice = malteseVoice;
-
-    // Highlight current phrase
-    phraseSpans.forEach(span => span.classList.remove('highlight'));
-    phraseSpans[index].classList.add('highlight');
+    if (malteseVoice) {
+      utter.voice = malteseVoice;
+    }
 
     utter.onend = () => {
-      setTimeout(() => speakPhrases(index + 1), 100); // slight pause between phrases
+      setTimeout(() => speakWords(index + 1), 100); // Delay between words
     };
 
     speechSynthesis.speak(utter);
@@ -129,7 +124,7 @@
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
-    speakPhrases(0);
+    speakWords(0);
   });
 </script>
 
