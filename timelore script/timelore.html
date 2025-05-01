@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Audio Word Sync (SpeechSynthesis)</title>
+  <title>Phrase-Level Sync</title>
   <style>
     body {
       margin: 0;
@@ -38,6 +38,10 @@
       overflow-y: auto;
     }
 
+    .phrase {
+      display: inline;
+    }
+
     .highlight {
       background-color: yellow;
       font-weight: bold;
@@ -50,74 +54,82 @@
 
 <div id="rectangle-container">
   <div id="text-container">
-    <p>As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past.</p>
-    <p>Before cities, before written language—there was Ħaġar Qim.</p>
-    <p>Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos.</p>
-    <p>They raised temples using sheer will and wisdom passed down through generations.</p>
-    <p>A sea breeze brushes your face. It’s the same wind those ancient people felt.</p>
-    <p>The sun above still aligns with the temple on the summer solstice—just as they intended.</p>
+    <p id="paragraph">
+      As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past. 
+      Before cities, before written language—there was Ħaġar Qim. 
+      Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos. 
+      They raised temples using sheer will and wisdom passed down through generations. 
+      A sea breeze brushes your face. 
+      It’s the same wind those ancient people felt. 
+      The sun above still aligns with the temple on the summer solstice—just as they intended.
+    </p>
   </div>
 </div>
 
 <script>
   const playButton = document.getElementById('playButton');
-  const textContainer = document.getElementById('text-container');
-  const allText = textContainer.innerText.trim();
-  const words = allText.split(/\s+/);
+  const paragraph = document.getElementById('paragraph');
 
-  // Replace words with span-wrapped versions
-  textContainer.innerHTML = words.map(word => `<span class="word">${word}</span>`).join(' ');
-  const wordSpans = document.querySelectorAll('.word');
+  const rawText = paragraph.innerText.trim();
 
-  function speakAndHighlight(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    // Try to find a Maltese voice or fall back
-    const voices = speechSynthesis.getVoices();
-    const malteseVoice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
-
-    if (malteseVoice) {
-      utterance.voice = malteseVoice;
-      utterance.lang = malteseVoice.lang;
+  // Break into short phrases (3–6 words)
+  const phrases = rawText.match(/([^\.!?]+[\.!?]?)/g).flatMap(sentence => {
+    const words = sentence.trim().split(/\s+/);
+    const chunks = [];
+    for (let i = 0; i < words.length; i += 4) {
+      chunks.push(words.slice(i, i + 4).join(' '));
     }
+    return chunks;
+  });
 
-    utterance.rate = 1;
+  // Replace paragraph with span-wrapped phrases
+  paragraph.innerHTML = phrases.map(phrase => `<span class="phrase">${phrase}</span>`).join(' ');
 
-    let wordIndex = 0;
+  const phraseSpans = document.querySelectorAll('.phrase');
 
-    utterance.onboundary = function(event) {
-      if (event.name === 'word') {
-        wordSpans.forEach(span => span.classList.remove('highlight'));
-        if (wordIndex < wordSpans.length) {
-          wordSpans[wordIndex].classList.add('highlight');
-        }
-        wordIndex++;
-      }
-    };
+  let voices = [];
 
-    utterance.onend = () => {
-      wordSpans.forEach(span => span.classList.remove('highlight'));
-      playButton.style.display = 'block';
-    };
-
-    speechSynthesis.cancel(); // Stop anything speaking before
-    speechSynthesis.speak(utterance);
+  function loadVoices() {
+    voices = speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        voices = speechSynthesis.getVoices();
+      });
+    }
   }
 
-  // Ensure voices are loaded before use
-  function loadVoicesThenSpeak() {
-    if (speechSynthesis.getVoices().length === 0) {
-      speechSynthesis.addEventListener('voiceschanged', () => {
-        speakAndHighlight(allText);
-      });
-    } else {
-      speakAndHighlight(allText);
+  loadVoices();
+
+  function speakPhrases(index = 0) {
+    if (index >= phrases.length) {
+      playButton.style.display = 'block';
+      return;
     }
+
+    const utter = new SpeechSynthesisUtterance(phrases[index]);
+    utter.rate = 1;
+    utter.lang = 'mt-MT';
+
+    const malteseVoice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
+    if (malteseVoice) utter.voice = malteseVoice;
+
+    // Highlight current phrase
+    phraseSpans.forEach(span => span.classList.remove('highlight'));
+    phraseSpans[index].classList.add('highlight');
+
+    utter.onend = () => {
+      setTimeout(() => speakPhrases(index + 1), 100); // slight pause between phrases
+    };
+
+    speechSynthesis.speak(utter);
   }
 
   playButton.addEventListener('click', () => {
     playButton.style.display = 'none';
-    loadVoicesThenSpeak();
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+    speakPhrases(0);
   });
 </script>
 
