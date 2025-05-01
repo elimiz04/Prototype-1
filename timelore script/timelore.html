@@ -39,13 +39,18 @@
     }
 
     .word {
-      display: inline;
+    display: inline-block;
+    transition: background-color 0.1s ease;
+    padding: 0 2px;
+    font-weight: normal;
+    white-space: nowrap;
     }
 
     .highlight {
-      background-color: yellow;
-      font-weight: bold;
+    background-color: yellow;
+    font-weight: normal; /* Avoid bold which causes width change */
     }
+
   </style>
 </head>
 <body>
