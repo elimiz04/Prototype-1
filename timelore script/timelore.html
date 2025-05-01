@@ -1,135 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Background Audio and Word-by-Word Highlighting</title>
-    <style>
-        /* General reset and body styles */
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            position: relative;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audio Word Sync (SpeechSynthesis)</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f9f5f0;
+    }
 
-        /* Styling for the highlighted word */
-        .highlight {
-            background-color: yellow;
-            font-weight: bold;
-        }
+    #playButton {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background-color: #80634F;
+      color: white;
+      cursor: pointer;
+      z-index: 20;
+    }
 
-        /* Container for the colored rectangle */
-        #rectangle-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 366px;
-            height: 584px;
-            background-color: #DEBDAA;
-            border-radius: 69px;
-            padding: 20px;
-            overflow-y: auto;
-            z-index: 10;
-        }
+    #rectangle-container {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      width: 366px;
+      height: 584px;
+      background-color: #DEBDAA;
+      border-radius: 69px;
+      padding: 20px;
+      overflow-y: auto;
+    }
 
-        /* Styling for the text container inside the rectangle */
-        #text-container {
-            color: black;
-            font-size: 16px;
-            line-height: 1.5;
-            max-width: 100%;
-            overflow-wrap: break-word;
-        }
-
-        #text-container p {
-            margin-bottom: 10px;
-        }
-    </style>
+    .highlight {
+      background-color: yellow;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
 
-<!-- Background audio (hidden) -->
-<audio id="background-audio" preload="auto">
-    <source src="https://www.dropbox.com/scl/fi/j5w8mpmtcbf83x31mz4a6/chapter-1-page-1-fast-speed.mp3?rlkey=d37gta9ce94hoe9efkgs384m6&st=ybiqscpi&dl=1" type="audio/mpeg">
-    Your browser does not support the audio element.
-</audio>
+<button id="playButton">▶️ Start Audio</button>
 
-<!-- Container for the colored rectangle -->
 <div id="rectangle-container">
-    <div id="text-container">
-        <p id="text1">As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past.</p>
-        <p id="text2">Before cities, before written language—there was Ħaġar Qim.</p>
-        <p id="text3">Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos.</p>
-        <p id="text4">They raised temples using sheer will and wisdom passed down through generations.</p>
-        <p id="text5">A sea breeze brushes your face. It’s the same wind those ancient people felt.</p>
-        <p id="text6">The sun above still aligns with the temple on the summer solstice—just as they intended.</p>
-    </div>
+  <div id="text-container">
+    <p>As you stand atop the cliff overlooking the Mediterranean Sea, you find yourself transported over 5,000 years into the past.</p>
+    <p>Before cities, before written language—there was Ħaġar Qim.</p>
+    <p>Perched above the coastline, this sacred space was built by a community deeply connected to nature and the cosmos.</p>
+    <p>They raised temples using sheer will and wisdom passed down through generations.</p>
+    <p>A sea breeze brushes your face. It’s the same wind those ancient people felt.</p>
+    <p>The sun above still aligns with the temple on the summer solstice—just as they intended.</p>
+  </div>
 </div>
 
 <script>
-    // Get the audio element
-    const audio = document.getElementById('background-audio');
+  const playButton = document.getElementById('playButton');
+  const textContainer = document.getElementById('text-container');
+  const allText = textContainer.innerText.trim();
+  const words = allText.split(/\s+/);
 
-    // Get the text elements
-    const textElements = [
-        document.getElementById('text1'),
-        document.getElementById('text2'),
-        document.getElementById('text3'),
-        document.getElementById('text4'),
-        document.getElementById('text5'),
-        document.getElementById('text6')
-    ];
+  // Replace words with span-wrapped versions
+  textContainer.innerHTML = words.map(word => `<span class="word">${word}</span>`).join(' ');
+  const wordSpans = document.querySelectorAll('.word');
 
-    // Split each paragraph into words and store them
-    let wordsArray = [];
-    textElements.forEach((textElement, index) => {
-        const words = textElement.innerText.split(' ');
-        wordsArray.push(words);
-        textElement.innerHTML = words.map(word => <span class="word">${word}</span>).join(' ');
-    });
+  function speakAndHighlight(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
 
-    // Map words to their timestamps in the audio (in seconds)
-    const wordTimes = {
-        text1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-        text2: [14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-        text3: [24, 25, 26, 27, 28, 29, 30, 31],
-        text4: [32, 33, 34, 35, 36, 37, 38, 39],
-        text5: [40, 41, 42, 43, 44, 45],
-        text6: [46, 47, 48, 49, 50, 51]
-    };
+    // Try to find a Maltese voice or fall back
+    const voices = speechSynthesis.getVoices();
+    const malteseVoice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
 
-    // Function to highlight words based on the current time of the audio
-    function highlightWords() {
-        const currentTime = audio.currentTime;
-
-        // Reset all highlights
-        document.querySelectorAll('.word').forEach(word => word.classList.remove('highlight'));
-
-        // Check each paragraph and highlight words based on current time
-        for (let i = 0; i < textElements.length; i++) {
-            const words = wordsArray[i];
-            const timings = wordTimes[text${i + 1}];
-
-            words.forEach((word, index) => {
-                const wordElement = textElements[i].children[index];
-                if (currentTime >= timings[index] && currentTime < (timings[index] + 1)) {  // Each word takes ~1 second
-                    wordElement.classList.add('highlight');
-                }
-            });
-        }
+    if (malteseVoice) {
+      utterance.voice = malteseVoice;
+      utterance.lang = malteseVoice.lang;
     }
 
-    // Start playing audio after 3 seconds
-    setTimeout(() => {
-        audio.play();
-    }, 3000);
+    utterance.rate = 1;
 
-    // Set interval to check the audio time and highlight words
-    setInterval(highlightWords, 100); // Check every 100ms
+    let wordIndex = 0;
+
+    utterance.onboundary = function(event) {
+      if (event.name === 'word') {
+        wordSpans.forEach(span => span.classList.remove('highlight'));
+        if (wordIndex < wordSpans.length) {
+          wordSpans[wordIndex].classList.add('highlight');
+        }
+        wordIndex++;
+      }
+    };
+
+    utterance.onend = () => {
+      wordSpans.forEach(span => span.classList.remove('highlight'));
+      playButton.style.display = 'block';
+    };
+
+    speechSynthesis.cancel(); // Stop anything speaking before
+    speechSynthesis.speak(utterance);
+  }
+
+  // Ensure voices are loaded before use
+  function loadVoicesThenSpeak() {
+    if (speechSynthesis.getVoices().length === 0) {
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        speakAndHighlight(allText);
+      });
+    } else {
+      speakAndHighlight(allText);
+    }
+  }
+
+  playButton.addEventListener('click', () => {
+    playButton.style.display = 'none';
+    loadVoicesThenSpeak();
+  });
 </script>
 
 </body>
