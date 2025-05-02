@@ -7,8 +7,8 @@
         {
             "type": "chrome",
             "request": "launch",
-            "name": "Open timelore.html",
-            "file": "c:\\Users\\elise\\OneDrive\\Documents\\Mcast\\Level 6\\Major Project\\Prototype 1\\timelore script\\timelore.html"
+            "name": "Open Chapter 1 fast speed.html",
+            "file": "c:\\Users\\elise\\OneDrive\\Documents\\Mcast\\Level 6\\Major Project\\Prototype 1\\timelore script\\Chapter 1 fast speed.html"
         }
     ]
 }
