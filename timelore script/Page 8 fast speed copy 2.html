@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Natural Audio + Word-by-Word Highlight</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Merriweather', serif;
+      background-color: #f4efe9;
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    #playButton {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 28px;
+      font-size: 16px;
+      border: none;
+      border-radius: 30px;
+      background-color: #7A5C43;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      transition: background-color 0.3s ease;
+    }
+
+    #playButton:hover {
+      background-color: #5e4633;
+    }
+
+    #rectangle-container {
+      width: 366px;
+      height: 584px;
+      background-color: #DEBDAA;
+      border-radius: 40px;
+      padding: 32px;
+      overflow-y: auto;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    #text-container p {
+      margin-bottom: 1.2em;
+      text-align: justify;
+      line-height: 1.8;
+      font-size: 16px;
+      color: #3e2f24;
+      letter-spacing: 0.5px;
+    }
+
+    .word {
+      display: inline-block;
+      transition: background-color 0.1s ease;
+      padding: 0 2px;
+      white-space: nowrap;
+    }
+
+    .highlight {
+      background-color: #ffeb3b;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<button id="playButton">▶️ Start Audio</button>
+
+<div id="rectangle-container">
+  <div id="text-container">
+    <p>After the war, King George VI awards the entire island the George Cross, a symbol of unmatched bravery. Malta is scarred, but unbroken.</p>
+    <p>You leave the shelter with a deeper understanding: that Malta’s story isn’t just about stone or sea, but about resilience. About people.</p>  
+  </div>
+</div>
+
+<script>
+  const playButton = document.getElementById('playButton');
+  const textContainer = document.getElementById('text-container');
+
+  let voices = [];
+
+  function loadVoices() {
+    voices = speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        voices = speechSynthesis.getVoices();
+      });
+    }
+  }
+
+  loadVoices();
+
+  const paragraphs = Array.from(textContainer.querySelectorAll('p'));
+  const sentences = paragraphs.map(p => p.innerText.trim());
+
+  paragraphs.forEach((p, sIndex) => {
+    const words = p.innerText.trim().split(/\s+/);
+    p.innerHTML = words.map((word, wIndex) =>
+      `<span class="word" data-index="${sIndex}-${wIndex}">${word}</span>`
+    ).join(' ');
+  });
+
+  const wordSpans = document.querySelectorAll('.word');
+
+  function speakSentences(index = 0) {
+    if (index >= sentences.length) {
+      playButton.style.display = 'block';
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(sentences[index]);
+    utter.rate = 1.7;
+    utter.lang = 'mt-MT';
+
+    const voice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
+    if (voice) utter.voice = voice;
+
+    let wordOffset = 0;
+    const sentenceWords = sentences[index].trim().split(/\s+/);
+
+    utter.onboundary = (event) => {
+      if (event.name === 'word') {
+        wordSpans.forEach(span => span.classList.remove('highlight'));
+        const span = document.querySelector(`[data-index="${index}-${wordOffset}"]`);
+        if (span) {
+          span.classList.add('highlight');
+          span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        wordOffset++;
+      }
+    };
+
+    utter.onend = () => {
+      speakSentences(index + 1);
+    };
+
+    speechSynthesis.speak(utter);
+  }
+
+  playButton.addEventListener('click', () => {
+    playButton.style.display = 'none';
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+    speakSentences(0);
+  });
+</script>
+
+</body>
+</html>
