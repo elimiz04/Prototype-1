@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Natural Audio + Word-by-Word Highlight</title>
+  <title>Speech Highlight</title>
   <style>
     body {
       margin: 0;
@@ -32,10 +32,6 @@
       transition: background-color 0.3s ease;
     }
 
-    #playButton:hover {
-      background-color: #5e4633;
-    }
-
     #rectangle-container {
       width: 366px;
       height: 584px;
@@ -44,15 +40,6 @@
       padding: 32px;
       overflow-y: auto;
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    }
-
-    #text-container p {
-      margin-bottom: 1.2em;
-      text-align: justify;
-      line-height: 1.8;
-      font-size: 16px;
-      color: #3e2f24;
-      letter-spacing: 0.5px;
     }
 
     .word {
@@ -74,98 +61,92 @@
 
 <div id="rectangle-container">
   <div id="text-container">
-    <p>From temples to castles to tunnels... Malta’s layers of history are still alive.</p>
-    <p>And now — it’s your turn to carry these stories forward.</p>
+    <p id="paragraph">
+      From temples to castles to tunnels... Malta’s layers of history are still alive.
+      And now it’s your turn to carry these stories forward.
+    </p>
   </div>
 </div>
 
 <script>
   const playButton = document.getElementById('playButton');
-  const textContainer = document.getElementById('text-container');
-  let voices = [];
+  const paragraph = document.getElementById('paragraph');
 
-  function loadVoices() {
-    voices = speechSynthesis.getVoices();
-    if (voices.length === 0) {
-      speechSynthesis.addEventListener('voiceschanged', () => {
-        voices = speechSynthesis.getVoices();
-      });
-    }
+  // Add space around `--` for better readability
+  const spacedText = paragraph.innerText.replace(/--/g, ' -- ');
+
+  // Split text into span-wrapped words
+  const words = spacedText.trim().split(/\s+/);
+  paragraph.innerHTML = words.map((word, i) =>
+    `<span class="word" id="word-${i}">${word}</span>`
+  ).join(' ');
+
+  const wordElements = document.querySelectorAll('.word');
+
+  function getWorkingVoice() {
+    const voices = speechSynthesis.getVoices();
+    return voices.find(v => v.name.includes('Hazel') || v.name.includes('Samantha') || (v.lang === 'en-GB' && v.gender === 'female')) || voices[0];
   }
 
-  loadVoices();
+  function speakText() {
+    const text = spacedText;  // Use the text with added spaces around `--`
+    const utterance = new SpeechSynthesisUtterance(text);
 
-  const paragraphs = Array.from(textContainer.querySelectorAll('p'));
-  const sentences = paragraphs.map(p => p.innerText.trim());
+    // Adjusting speech to sound more natural
+    utterance.rate = 1.2;  // Set a comfortable rate for storytelling
+    utterance.pitch = 1.4;  // Set a pleasant pitch
+    utterance.volume = 1;
 
-  // Wrap each word in a span
-  paragraphs.forEach((p, sIndex) => {
-    const words = p.innerText.trim().split(/\s+/);
-    p.innerHTML = words.map((word, wIndex) =>
-      `<span class="word" data-sentence="${sIndex}" data-index="${wIndex}">${word}</span>`
-    ).join(' ');
-  });
+    utterance.voice = getWorkingVoice();
 
-  const wordSpans = document.querySelectorAll('.word');
+    let currentWord = 0;
 
-  function speakSentences(index = 0) {
-    if (index >= sentences.length) {
-      playButton.style.display = 'block';
-      return;
-    }
+    // Add emotional pacing and pauses for storytelling
+    utterance.onboundary = function(event) {
+      if (event.name === 'word') {
+        wordElements.forEach(w => w.classList.remove('highlight'));
+        const wordSpan = document.getElementById(`word-${currentWord}`);
+        if (wordSpan) {
+          wordSpan.classList.add('highlight');
+          wordSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
 
-    const utter = new SpeechSynthesisUtterance(sentences[index]);
-    utter.rate = 1.2;
-    utter.pitch = 1.1;
-    utter.volume = 1.0;
+        // Simulate pauses at logical places (e.g., after commas, periods, or key phrases)
+        if (event.charIndex === spacedText.indexOf("tunnels")) {
+          utterance.rate = 0.9;  // Slow down for dramatic pause
+          utterance.pitch = 1.2;  // Lower pitch for drama
+        } else if (event.charIndex === spacedText.indexOf("alive")) {
+          utterance.rate = 1.3;  // Speed up for excitement
+          utterance.pitch = 1.6;  // Raise pitch for excitement
+        } else if (event.charIndex === spacedText.indexOf("forward")) {
+          utterance.rate = 1.0;  // Normal rate
+          utterance.pitch = 1.5;  // Slightly raised pitch for encouragement
+        }
 
-    const preferredVoices = [
-      'Google UK English Female',
-      'Google US English',
-      'Microsoft Zira Desktop',
-      'Apple Siri'
-    ];
-
-    const voice = voices.find(v => preferredVoices.includes(v.name)) ||
-                  voices.find(v => v.lang === 'en-GB') ||
-                  voices.find(v => v.lang.startsWith('en'));
-
-    if (voice) utter.voice = voice;
-
-    const sentenceWords = sentences[index].trim().split(/\s+/);
-    const durationPerWord = 500 / utter.rate;
-    let wordIndex = 0;
-
-    const highlightInterval = setInterval(() => {
-      wordSpans.forEach(span => span.classList.remove('highlight'));
-
-      const span = document.querySelector(`[data-sentence="${index}"][data-index="${wordIndex}"]`);
-      if (span) {
-        span.classList.add('highlight');
-        span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentWord++;
       }
-
-      wordIndex++;
-      if (wordIndex >= sentenceWords.length) {
-        clearInterval(highlightInterval);
-      }
-    }, durationPerWord);
-
-    utter.onend = () => {
-      clearInterval(highlightInterval);
-      speakSentences(index + 1);
     };
 
-    speechSynthesis.speak(utter);
+    // Handle the very last word to ensure the highlight goes to the end
+    utterance.onend = () => {
+      wordElements.forEach(w => w.classList.remove('highlight'));
+      wordElements[wordElements.length - 1].classList.add('highlight');
+      playButton.style.display = 'block';
+    };
+
+    speechSynthesis.speak(utterance);
   }
 
   playButton.addEventListener('click', () => {
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
     playButton.style.display = 'none';
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
-    speakSentences(0);
+    setTimeout(speakText, 200);
   });
+
+  // Wait until voices are loaded
+  window.speechSynthesis.onvoiceschanged = () => {
+    getWorkingVoice();
+  };
 </script>
 
 </body>
