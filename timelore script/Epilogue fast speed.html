@@ -74,16 +74,14 @@
 
 <div id="rectangle-container">
   <div id="text-container">
-  <p>From temples to castles to tunnels, Malta’s layers of history are still alive.
-    With each step, you walk alongside the ancient builders, the noble knights, and the wartime survivors.</p>
-  <p>And now, it’s your turn to carry these stories forward.</p>
+    <p>From temples to castles to tunnels... Malta’s layers of history are still alive.</p>
+    <p>And now — it’s your turn to carry these stories forward.</p>
   </div>
 </div>
 
 <script>
   const playButton = document.getElementById('playButton');
   const textContainer = document.getElementById('text-container');
-
   let voices = [];
 
   function loadVoices() {
@@ -116,24 +114,35 @@
     }
 
     const utter = new SpeechSynthesisUtterance(sentences[index]);
-    utter.rate = 1.7;
-    utter.lang = 'mt-MT';
+    utter.rate = 1.2;
+    utter.pitch = 1.1;
+    utter.volume = 1.0;
 
-    const voice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
+    const preferredVoices = [
+      'Google UK English Female',
+      'Google US English',
+      'Microsoft Zira Desktop',
+      'Apple Siri'
+    ];
+
+    const voice = voices.find(v => preferredVoices.includes(v.name)) ||
+                  voices.find(v => v.lang === 'en-GB') ||
+                  voices.find(v => v.lang.startsWith('en'));
+
     if (voice) utter.voice = voice;
 
-    let wordOffset = 0;
-    const sentenceWords = sentences[index].trim().split(/\s+/);
+    const sentenceWords = sentences[index].split(/\s+/);
+    let currentWord = 0;
 
-    utter.onboundary = (event) => {
+    utter.onboundary = function (event) {
       if (event.name === 'word') {
         wordSpans.forEach(span => span.classList.remove('highlight'));
-        const span = document.querySelector(`[data-index="${index}-${wordOffset}"]`);
+        const span = document.querySelector(`[data-index="${index}-${currentWord}"]`);
         if (span) {
           span.classList.add('highlight');
           span.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        wordOffset++;
+        currentWord++;
       }
     };
 

@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Natural Audio + Word-by-Word Highlight</title>
+  <title>Emotional Audio + Word-by-Word Highlight</title>
   <style>
     body {
       margin: 0;
-      font-family: 'Merriweather', serif; /* Rustic, classic font */
+      font-family: 'Merriweather', serif;
       background-color: #f4efe9;
       display: flex;
       justify-content: flex-start;
@@ -74,16 +74,15 @@
 
 <div id="rectangle-container">
   <div id="text-container">
-    <p>From temples to castles to tunnels, Malta’s layers of history are still alive.
-      With each step, you walk alongside the ancient builders, the noble knights, and the wartime survivors.</p>
-    <p>And now, it’s your turn to carry these stories forward.</p>
-    </div>
+    <p>From temples... to castles... to tunnels — Malta’s layers of history are still alive.</p>
+    <p>With every step, you walk beside ancient builders, noble knights... and wartime survivors.</p>
+    <p>Now — it’s your turn... to carry these stories forward.</p>
+  </div>
 </div>
 
 <script>
   const playButton = document.getElementById('playButton');
   const textContainer = document.getElementById('text-container');
-
   let voices = [];
 
   function loadVoices() {
@@ -116,10 +115,23 @@
     }
 
     const utter = new SpeechSynthesisUtterance(sentences[index]);
-    utter.rate = 0.75; // Adjusted for a slower pace
-    utter.lang = 'mt-MT';
 
-    const voice = voices.find(v => v.lang === 'mt-MT') || voices.find(v => v.lang.startsWith('en'));
+    // Emotionally tuned
+    utter.rate = 0.92;  // Slightly slow for drama
+    utter.pitch = 1.25; // Slightly higher for engagement
+    utter.volume = 1.0;
+
+    const preferredVoices = [
+      'Google UK English Female',
+      'Google US English',
+      'Microsoft Zira Desktop',
+      'Apple Siri'
+    ];
+
+    const voice = voices.find(v => preferredVoices.includes(v.name)) ||
+                  voices.find(v => v.lang === 'en-GB') ||
+                  voices.find(v => v.lang.startsWith('en'));
+
     if (voice) utter.voice = voice;
 
     let wordOffset = 0;

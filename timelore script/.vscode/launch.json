@@ -7,8 +7,8 @@
         {
             "type": "chrome",
             "request": "launch",
-            "name": "Open Page 1 normal speed.html",
-            "file": "c:\\Users\\elise\\OneDrive\\Documents\\Mcast\\Level 6\\Major Project\\Prototype 1\\timelore script\\Page 1 normal speed.html"
+            "name": "Open Epilogue fast speed.html",
+            "file": "c:\\Users\\elise\\OneDrive\\Documents\\Mcast\\Level 6\\Major Project\\Prototype 1\\timelore script\\Epilogue fast speed.html"
         }
     ]
 }
