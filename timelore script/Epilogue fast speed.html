@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Natural Audio + Simulated Word-by-Word Highlight</title>
+  <title>Natural Audio + Word-by-Word Highlight</title>
   <style>
     body {
       margin: 0;
@@ -98,28 +98,15 @@
   const paragraphs = Array.from(textContainer.querySelectorAll('p'));
   const sentences = paragraphs.map(p => p.innerText.trim());
 
-  // Wrap words in spans
+  // Wrap each word in a span
   paragraphs.forEach((p, sIndex) => {
     const words = p.innerText.trim().split(/\s+/);
     p.innerHTML = words.map((word, wIndex) =>
-      `<span class="word" data-index="${sIndex}-${wIndex}">${word}</span>`
+      `<span class="word" data-sentence="${sIndex}" data-index="${wIndex}">${word}</span>`
     ).join(' ');
   });
 
   const wordSpans = document.querySelectorAll('.word');
-
-  function highlightWordsSimulated(sentenceIndex, duration) {
-    const words = Array.from(document.querySelectorAll(`[data-index^="${sentenceIndex}-"]`));
-    const delay = duration / words.length;
-
-    words.forEach((word, i) => {
-      setTimeout(() => {
-        wordSpans.forEach(span => span.classList.remove('highlight'));
-        word.classList.add('highlight');
-        word.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, delay * i);
-    });
-  }
 
   function speakSentences(index = 0) {
     if (index >= sentences.length) {
@@ -128,9 +115,9 @@
     }
 
     const utter = new SpeechSynthesisUtterance(sentences[index]);
-    utter.rate = 1.1;
+    utter.rate = 1.2;
     utter.pitch = 1.1;
-    utter.volume = 1;
+    utter.volume = 1.0;
 
     const preferredVoices = [
       'Google UK English Female',
@@ -145,11 +132,27 @@
 
     if (voice) utter.voice = voice;
 
-    const estimatedDuration = (sentences[index].split(" ").length / utter.rate) * 600;
+    const sentenceWords = sentences[index].trim().split(/\s+/);
+    const durationPerWord = 500 / utter.rate;
+    let wordIndex = 0;
 
-    highlightWordsSimulated(index, estimatedDuration);
+    const highlightInterval = setInterval(() => {
+      wordSpans.forEach(span => span.classList.remove('highlight'));
+
+      const span = document.querySelector(`[data-sentence="${index}"][data-index="${wordIndex}"]`);
+      if (span) {
+        span.classList.add('highlight');
+        span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      wordIndex++;
+      if (wordIndex >= sentenceWords.length) {
+        clearInterval(highlightInterval);
+      }
+    }, durationPerWord);
 
     utter.onend = () => {
+      clearInterval(highlightInterval);
       speakSentences(index + 1);
     };
 
