@@ -62,8 +62,7 @@
 <div id="rectangle-container">
   <div id="text-container">
     <p id="paragraph">
-      From temples to castles to tunnels... Malta’s layers of history are still alive.
-      And now it’s your turn to carry these stories forward.
+      From temples... to castles... to tunnels — Malta’s layers of history are still alive. And now... it's your turn — to carry these stories forward.
     </p>
   </div>
 </div>
@@ -72,12 +71,20 @@
   const playButton = document.getElementById('playButton');
   const paragraph = document.getElementById('paragraph');
 
-  // Add space around `--` for better readability
-  const spacedText = paragraph.innerText.replace(/--/g, ' -- ');
+  const phrases = [
+    { text: "From temples...", pitch: 1.2, rate: 0.95 },
+    { text: "To castles...", pitch: 1.1, rate: 0.95 },
+    { text: "To tunnels —", pitch: 1.0, rate: 0.85 },
+    { text: "Malta’s layers of history are still alive.", pitch: 1.3, rate: 1.1 },
+    { text: "And now... it's your turn — to carry these stories forward.", pitch: 1.4, rate: 1.05 }
+  ];
 
-  // Split text into span-wrapped words
-  const words = spacedText.trim().split(/\s+/);
-  paragraph.innerHTML = words.map((word, i) =>
+  // Flatten all words for global highlighting
+  const fullText = phrases.map(p => p.text).join(' ');
+  const allWords = fullText.trim().split(/\s+/);
+
+  // Build the paragraph with global span IDs
+  paragraph.innerHTML = allWords.map((word, i) =>
     `<span class="word" id="word-${i}">${word}</span>`
   ).join(' ');
 
@@ -85,53 +92,40 @@
 
   function getWorkingVoice() {
     const voices = speechSynthesis.getVoices();
-    return voices.find(v => v.name.includes('Hazel') || v.name.includes('Samantha') || (v.lang === 'en-GB' && v.gender === 'female')) || voices[0];
+    return voices.find(v =>
+      v.name.includes('Google') || v.name.includes('Samantha') || (v.lang === 'en-GB')
+    ) || voices[0];
   }
 
-  function speakText() {
-    const text = spacedText;  // Use the text with added spaces around `--`
-    const utterance = new SpeechSynthesisUtterance(text);
+  let globalWordIndex = 0;
 
-    // Adjusting speech to sound more natural
-    utterance.rate = 1.2;  // Set a comfortable rate for storytelling
-    utterance.pitch = 1.4;  // Set a pleasant pitch
+  function speakPhrase(index = 0) {
+    if (index >= phrases.length) {
+      playButton.style.display = 'block';
+      return;
+    }
+
+    const { text, pitch, rate } = phrases[index];
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = getWorkingVoice();
+    utterance.pitch = pitch;
+    utterance.rate = rate;
     utterance.volume = 1;
 
-    utterance.voice = getWorkingVoice();
-
-    let currentWord = 0;
-
-    // Add emotional pacing and pauses for storytelling
     utterance.onboundary = function(event) {
-      if (event.name === 'word') {
-        wordElements.forEach(w => w.classList.remove('highlight'));
-        const wordSpan = document.getElementById(`word-${currentWord}`);
-        if (wordSpan) {
-          wordSpan.classList.add('highlight');
-          wordSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (event.name === "word") {
+        wordElements.forEach(el => el.classList.remove('highlight'));
+        const current = document.getElementById(`word-${globalWordIndex}`);
+        if (current) {
+          current.classList.add('highlight');
+          current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-
-        // Simulate pauses at logical places (e.g., after commas, periods, or key phrases)
-        if (event.charIndex === spacedText.indexOf("tunnels")) {
-          utterance.rate = 0.9;  // Slow down for dramatic pause
-          utterance.pitch = 1.2;  // Lower pitch for drama
-        } else if (event.charIndex === spacedText.indexOf("alive")) {
-          utterance.rate = 1.3;  // Speed up for excitement
-          utterance.pitch = 1.6;  // Raise pitch for excitement
-        } else if (event.charIndex === spacedText.indexOf("forward")) {
-          utterance.rate = 1.0;  // Normal rate
-          utterance.pitch = 1.5;  // Slightly raised pitch for encouragement
-        }
-
-        currentWord++;
+        globalWordIndex++;
       }
     };
 
-    // Handle the very last word to ensure the highlight goes to the end
     utterance.onend = () => {
-      wordElements.forEach(w => w.classList.remove('highlight'));
-      wordElements[wordElements.length - 1].classList.add('highlight');
-      playButton.style.display = 'block';
+      speakPhrase(index + 1);
     };
 
     speechSynthesis.speak(utterance);
@@ -139,11 +133,12 @@
 
   playButton.addEventListener('click', () => {
     if (speechSynthesis.speaking) speechSynthesis.cancel();
+    globalWordIndex = 0;
+    wordElements.forEach(el => el.classList.remove('highlight'));
     playButton.style.display = 'none';
-    setTimeout(speakText, 200);
+    setTimeout(() => speakPhrase(0), 200);
   });
 
-  // Wait until voices are loaded
   window.speechSynthesis.onvoiceschanged = () => {
     getWorkingVoice();
   };
